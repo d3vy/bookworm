@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: BotForFedos
+  datasource:
+    url: jdbc:postgresql://localhost:5432/telegram_bot_for_fedos_database
+    username: postgres
+    password: glhf5561783742
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+bot:
+  name: shopping_with_bookworm_bot
+  token: 7768787297:AAFk5RXeryDQzOohK1wxNMHieOBXrsIZmj0
+  owner-id: 904663774
+catalogue:
+  count-of-categories: 6
+  count-of-documents: 12
+  count-of-financial-services: 2
