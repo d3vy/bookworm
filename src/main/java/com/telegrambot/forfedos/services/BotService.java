@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -61,8 +60,6 @@ public class BotService extends TelegramLongPollingBot {
     @Value("${catalogue.count-of-sales}")
     private Integer countOfSales;
 
-    private final Map<Long, Deque<MessageState>> messageHistory = new HashMap<>();
-
 
     @Override
     public String getBotUsername() {
@@ -80,7 +77,7 @@ public class BotService extends TelegramLongPollingBot {
             String message = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
 
-            if (message.contains("/send") && (Objects.equals(botConfig.getOwner2ChatId(), chatId) || Objects.equals(botConfig.getOwnerChatId(), chatId) | Objects.equals(botConfig.getOwner3ChatId(), chatId))) {
+            if (message.contains("/send") && isOwner(chatId)) {
                 var textToSend = EmojiParser.parseToUnicode(message.substring(message.indexOf(" ")));
                 var customers = customerRepository.findAll();
                 for (Customer customer : customers) {
@@ -100,7 +97,6 @@ public class BotService extends TelegramLongPollingBot {
             String callBackData = callBackQuery.getData();
             Integer messageId = callBackQuery.getMessage().getMessageId();
             Long chatId = callBackQuery.getMessage().getChatId();
-            Map<String, Integer> documents = findDocuments();
             switch (callBackData) {
                 case "Документы":
                     showCatalogue(chatId, messageId, documentsRepository, Document::getName, "Выберите документ");
@@ -133,39 +129,7 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    private void backForOneStep(Long chatId, Integer messageId) {
-        Deque<MessageState> history = messageHistory.get(chatId);
-
-        if (history == null || history.size() < 2) {
-            // Если истории нет или не хватает элементов, возвращаем в главное меню
-            backToProductsCatalogue(chatId, messageId);
-            return;
-        }
-
-        // Удаляем текущее состояние и получаем предыдущее
-        history.pollLast();
-        MessageState previousState = history.peekLast();
-
-        if (previousState != null) {
-            EditMessageText message = new EditMessageText();
-            message.setChatId(chatId.toString());
-            message.setMessageId(messageId);
-            message.setText(previousState.getText());
-            message.setReplyMarkup(previousState.getReplyMarkup());
-
-            try {
-                execute(message);
-            } catch (TelegramApiException e) {
-                log.error("Ошибка при возврате к предыдущему состоянию: {}", e.getMessage());
-            }
-        }
-    }
-
-
     private void backToProductsCatalogue(Long chatId, Integer messageId) {
-
-        // Очищаем историю при возвращении в главное меню
-        messageHistory.remove(chatId);
 
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId.toString());
@@ -278,20 +242,11 @@ public class BotService extends TelegramLongPollingBot {
     }
 
     private void getProductsCatalogue(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Ниже приведен каталог услуг, которые мы предоставляем.");
-        log.info("Создали сообщение");
+        String text = "Ниже приведен каталог услуг, которые мы предоставляем.";
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = getMenu();
         inlineKeyboardMarkup.setKeyboard(rowsInline);
-        message.setReplyMarkup(inlineKeyboardMarkup);
-        log.info("Добавили кнопки к сообщению");
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при отправке сообщения с клавиатурой пользователю");
-        }
+        sendMessage(chatId, text, inlineKeyboardMarkup);
     }
 
     private List<List<InlineKeyboardButton>> getMenu() {
@@ -450,5 +405,11 @@ public class BotService extends TelegramLongPollingBot {
         button.setText(name);
         button.setCallbackData(name);
         return button;
+    }
+
+    private boolean isOwner(Long chatId) {
+        return Objects.equals(botConfig.getOwner2ChatId(), chatId)
+                || Objects.equals(botConfig.getOwnerChatId(), chatId)
+                || Objects.equals(botConfig.getOwner3ChatId(), chatId);
     }
 }
