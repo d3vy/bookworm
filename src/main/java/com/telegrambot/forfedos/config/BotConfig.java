@@ -14,5 +14,11 @@ public class BotConfig {
     String token;
     @Value("${bot.owner-id}")
     Long ownerChatId;
+    @Value("${bot.owner2-id}")
+    Long owner2ChatId;
+    @Value("${bot.owner3-id}")
+    Long owner3ChatId;
+
+
 
 }

@@ -59,6 +59,8 @@ public class BotService extends TelegramLongPollingBot {
     @Value("${catalogue.count-of-sales}")
     private Integer countOfSales;
 
+    private final Map<Long, Stack<String>> customerMessagesHistory = new HashMap<>();
+
 
     @Override
     public String getBotUsername() {
@@ -76,7 +78,7 @@ public class BotService extends TelegramLongPollingBot {
             String message = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
 
-            if (message.contains("/send") && Objects.equals(botConfig.getOwnerChatId(), chatId)) {
+            if (message.contains("/send") && (Objects.equals(botConfig.getOwner2ChatId(), chatId) || Objects.equals(botConfig.getOwnerChatId(), chatId) | Objects.equals(botConfig.getOwner3ChatId(), chatId))) {
                 var textToSend = EmojiParser.parseToUnicode(message.substring(message.indexOf(" ")));
                 var customers = customerRepository.findAll();
                 for (Customer customer : customers) {
@@ -116,6 +118,9 @@ public class BotService extends TelegramLongPollingBot {
                 case "Акции":
                     showSalesCatalogue(chatId, messageId);
                     break;
+                case "Назад":
+                    backForOneStep(chatId, messageId);
+                    break;
                 case "Главное меню":
                     backToProductsCatalogue(chatId, messageId);
                     break;
@@ -124,6 +129,27 @@ public class BotService extends TelegramLongPollingBot {
                     break;
             }
         }
+    }
+
+    private void addMessageToHistory(Long chatId, String callbackData) {
+        customerMessagesHistory.putIfAbsent(chatId, new Stack<>());
+        customerMessagesHistory.get(chatId).push(callbackData);
+    }
+
+    private void backForOneStep(Long chatId, Integer messageId) {
+        Stack<String> history = customerMessagesHistory.get(chatId);
+
+        if (history.isEmpty()) {
+            log.error("Попытка возврата назад на главном меню");
+            return;
+        }
+
+        String previousMessage = history.pop();
+
+        EditMessageText message = new EditMessageText();
+        message.setChatId(chatId);
+        message.setMessageId(messageId);
+        message.setText(previousMessage);
     }
 
     private void backToProductsCatalogue(Long chatId, Integer messageId) {
@@ -253,20 +279,25 @@ public class BotService extends TelegramLongPollingBot {
         itemInfo.ifPresentOrElse(
                 item -> {
                     message.setText("Цена на товар \"%s\": %d\n\n".formatted(item.getName(), item.getPrice()) +
-                            "Договориться о приобретении: %s\n\n".formatted("@ссылка на аккаунт") +
-                            "За каждого приведенного друга даем 10000 рублей!");
+                            "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
+                            "За каждого приведенного друга даем 10% от суммы его покупки!");
 
                     // Create the inline keyboard with a back button
                     InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
                     List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
                     // Back button to return to the main menu
-                    InlineKeyboardButton backButton = new InlineKeyboardButton();
-                    backButton.setText("К главному меню");
-                    backButton.setCallbackData("Главное меню");
+                    InlineKeyboardButton backToMainMenuButton = new InlineKeyboardButton();
+                    backToMainMenuButton.setText("К главному меню");
+                    backToMainMenuButton.setCallbackData("Главное меню");
+
+                    InlineKeyboardButton backForOneStepButton = new InlineKeyboardButton();
+                    backForOneStepButton.setText("Назад");
+                    backForOneStepButton.setCallbackData("Назад");
 
                     List<InlineKeyboardButton> rowInline = new ArrayList<>();
-                    rowInline.add(backButton);
+                    rowInline.add(backForOneStepButton);
+                    rowInline.add(backToMainMenuButton);
                     rowsInline.add(rowInline);
 
                     markup.setKeyboard(rowsInline);
