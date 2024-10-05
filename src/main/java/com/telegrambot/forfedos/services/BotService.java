@@ -176,119 +176,26 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    private boolean isSale(String callbackData) {
-        List<String> sales = new ArrayList<>();
-        for (int i = 1; i <= countOfSales; i++) {
-            String documentText = saleRepository.findById(i).get().getName();
-            if (saleRepository.findById(i).isPresent()) {
-                sales.add(documentText);
-            } else {
-                log.error("Документ не найден [isSale]");
-            }
-        }
-        return sales.contains(callbackData);
-    }
-
-    private boolean isDocument(String callbackData) {
-        List<String> documents = new ArrayList<>();
-        for (int i = 1; i <= countOfDocuments; i++) {
-            String documentText = documentsRepository.findById(i).get().getName();
-            if (documentsRepository.findById(i).isPresent()) {
-                documents.add(documentText);
-            } else {
-                log.error("Документ не найден [isDocument]");
-            }
-        }
-        return documents.contains(callbackData);
-    }
-
-    private boolean isFinancialService(String callbackData) {
-        List<String> financialServices = new ArrayList<>();
-        for (int i = 1; i <= countOfFinancialServices; i++) {
-            String documentText = financialServiceRepository.findById(i).get().getName();
-            if (financialServiceRepository.findById(i).isPresent()) {
-                financialServices.add(documentText);
-            } else {
-                log.error("Документ не найден [isFinancialService]");
-            }
-        }
-        return financialServices.contains(callbackData);
-    }
-
-    private boolean isBankService(String callbackData) {
-        List<String> bankServices = new ArrayList<>();
-        for (int i = 1; i <= countOfBankServices; i++) {
-            String documentText = bankServiceRepository.findById(i).get().getName();
-            if (bankServiceRepository.findById(i).isPresent()) {
-                bankServices.add(documentText);
-            } else {
-                log.error("Документ не найден [isBankService]");
-            }
-        }
-        return bankServices.contains(callbackData);
-    }
-
-    private boolean isDigitalService(String callbackData) {
-        List<String> digitalServices = new ArrayList<>();
-        for (int i = 1; i <= countOfDigitalServices; i++) {
-            String documentText = digitalServiceRepository.findById(i).get().getName();
-            if (digitalServiceRepository.findById(i).isPresent()) {
-                digitalServices.add(documentText);
-            } else {
-                log.error("Документ не найден [isDigitalService]");
-            }
-        }
-        return digitalServices.contains(callbackData);
-    }
-
-    private boolean isOtherService(String callbackData) {
-        List<String> otherServices = new ArrayList<>();
-        for (int i = 1; i <= countOfBankServices; i++) {
-            String documentText = otherServiceRepository.findById(i).get().getName();
-            if (otherServiceRepository.findById(i).isPresent()) {
-                otherServices.add(documentText);
-            } else {
-                log.error("Документ не найден [isOtherService]");
-            }
-        }
-        return otherServices.contains(callbackData);
-    }
-
-
     private void showPrice(Long chatId, Integer messageId, String callbackData) {
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId.toString());
         message.setMessageId(messageId);
 
-        Optional<? extends PricedItem> itemInfo = Optional.empty();
+        // Универсальный поиск элемента по названию
+        Optional<? extends PricedItem> itemInfo = findItemByName(callbackData);
 
-        // Поиск данных в репозиториях
-        if (isDocument(callbackData)) {
-            itemInfo = documentsRepository.findByName(callbackData);
-        } else if (isFinancialService(callbackData)) {
-            itemInfo = financialServiceRepository.findByName(callbackData);
-        } else if (isBankService(callbackData)) {
-            itemInfo = bankServiceRepository.findByName(callbackData);
-        } else if (isDigitalService(callbackData)) {
-            itemInfo = digitalServiceRepository.findByName(callbackData);
-        } else if (isOtherService(callbackData)) {
-            itemInfo = otherServiceRepository.findByName(callbackData);
-        } else if (isSale(callbackData)) {
-            itemInfo = saleRepository.findByName(callbackData);
-        }
-
-        // Обработка данных
+        // Обработка найденного элемента
         itemInfo.ifPresentOrElse(
                 item -> {
                     message.setText("Цена на товар \"%s\": %d\n\n".formatted(item.getName(), item.getPrice()) +
                             "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                             "За каждого приведенного друга даем 10% от суммы его покупки!");
 
-                    // Create the inline keyboard with a back button
+                    // Создание инлайн-клавиатуры с кнопками
                     InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
                     List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
-                    // Back button to return to the main menu
+                    // Кнопка "Назад"
                     InlineKeyboardButton backToMainMenuButton = new InlineKeyboardButton();
                     backToMainMenuButton.setText("К главному меню");
                     backToMainMenuButton.setCallbackData("Главное меню");
@@ -306,7 +213,7 @@ public class BotService extends TelegramLongPollingBot {
                     message.setReplyMarkup(markup);
                 },
                 () -> {
-                    message.setText("Документ не найден");
+                    message.setText("Элемент не найден");
                     log.error("Элемент с названием {} не найден", callbackData);
                 }
         );
@@ -333,33 +240,6 @@ public class BotService extends TelegramLongPollingBot {
         return documents;
     }
 
-    //Метод для отправки Message пользователю.
-    private void executeMessage(SendMessage message) {
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при отправке сообщения пользователю: {}", e.getMessage());
-        }
-    }
-
-    //Метод, отвечающий за отправку определенного сообщения от бота пользователю.
-    private void sendMessage(long chatId, String messageToSend) {
-        //Создание сообщения
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(messageToSend);
-
-        //Отправка сообщения пользователю.
-        executeMessage(message);
-    }
-
-    //Метод, создающий сообщение для дальнейше отправки пользователю.
-    private void prepareAndSendMessage(long chatId, String messageToSend) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(messageToSend);
-        executeMessage(message);
-    }
 
     //Метод, отвечающий за добавление информации о пользователе в базу данных при нажатии на кнопку start.
     private void registerUser(Message message) {
@@ -422,13 +302,6 @@ public class BotService extends TelegramLongPollingBot {
         return rowsInline;
     }
 
-    // Вспомогательный метод для создания кнопки
-    private InlineKeyboardButton createButton(String name) {
-        InlineKeyboardButton button = new InlineKeyboardButton();
-        button.setText(name);
-        button.setCallbackData(name);
-        return button;
-    }
 
     private <T> void showCatalogue(
             Long chatId,
@@ -490,5 +363,62 @@ public class BotService extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             log.error("Ошибка при изменении сообщения в методе", e);
         }
+    }
+
+
+    private Optional<? extends PricedItem> findItemByName(String callbackData) {
+        List<Function<String, Optional<? extends PricedItem>>> repositoryFinders = List.of(
+                documentsRepository::findByName,
+                financialServiceRepository::findByName,
+                bankServiceRepository::findByName,
+                digitalServiceRepository::findByName,
+                otherServiceRepository::findByName,
+                saleRepository::findByName
+        );
+
+        // Итерируем по всем репозиториям и возвращаем первый найденный элемент
+        for (Function<String, Optional<? extends PricedItem>> finder : repositoryFinders) {
+            Optional<? extends PricedItem> item = finder.apply(callbackData);
+            if (item.isPresent()) {
+                return item;
+            }
+        }
+        return Optional.empty();
+    }
+
+    //Метод для отправки Message пользователю.
+    private void executeMessage(SendMessage message) {
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при отправке сообщения пользователю: {}", e.getMessage());
+        }
+    }
+
+    //Метод, отвечающий за отправку определенного сообщения от бота пользователю.
+    private void sendMessage(long chatId, String messageToSend) {
+        //Создание сообщения
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(messageToSend);
+
+        //Отправка сообщения пользователю.
+        executeMessage(message);
+    }
+
+    //Метод, создающий сообщение для дальнейше отправки пользователю.
+    private void prepareAndSendMessage(long chatId, String messageToSend) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(messageToSend);
+        executeMessage(message);
+    }
+
+    // Вспомогательный метод для создания кнопки
+    private InlineKeyboardButton createButton(String name) {
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText(name);
+        button.setCallbackData(name);
+        return button;
     }
 }
