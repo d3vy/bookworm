@@ -2,7 +2,6 @@ package com.telegrambot.forfedos.services;
 
 import com.telegrambot.forfedos.config.BotConfig;
 import com.telegrambot.forfedos.models.Customer;
-import com.telegrambot.forfedos.models.Document;
 import com.telegrambot.forfedos.models.PricedItem;
 import com.telegrambot.forfedos.repositories.*;
 import com.vdurmont.emoji.EmojiParser;
@@ -36,6 +35,7 @@ public class BotService extends TelegramLongPollingBot {
     private final DocumentsRepository documentsRepository;
     private final FinancialServiceRepository financialServiceRepository;
     private final OtherServiceRepository otherServiceRepository;
+    private final SaleRepository saleRepository;
 
 
     @Value("${catalogue.count-of-categories}")
@@ -46,6 +46,18 @@ public class BotService extends TelegramLongPollingBot {
 
     @Value("${catalogue.count-of-financial-services}")
     private Integer countOfFinancialServices;
+
+    @Value("${catalogue.count-of-bank-services}")
+    private Integer countOfBankServices;
+
+    @Value("${catalogue.count-of-digital-services}")
+    private Integer countOfDigitalServices;
+
+    @Value("${catalogue.count-of-other-services}")
+    private Integer countOfOtherServices;
+
+    @Value("${catalogue.count-of-sales}")
+    private Integer countOfSales;
 
 
     @Override
@@ -88,7 +100,6 @@ public class BotService extends TelegramLongPollingBot {
             switch (callBackData) {
                 case "Документы":
                     showDocumentsCatalogue(chatId, messageId);
-                    log.info(callBackQuery.toString());
                     break;
                 case "Финансовые услуги":
                     ShowFinancialServiceCatalogue(chatId, messageId);
@@ -102,6 +113,12 @@ public class BotService extends TelegramLongPollingBot {
                 case "Прочее":
                     showOtherOptionsCatalogue(chatId, messageId);
                     break;
+                case "Акции":
+                    showSalesCatalogue(chatId, messageId);
+                    break;
+                case "Главное меню":
+                    backToProductsCatalogue(chatId, messageId);
+                    break;
                 default:
                     showPrice(chatId, messageId, callBackData);
                     break;
@@ -109,7 +126,106 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    //Нужно сделать так, чтобы этот метод был един для всех документов, поэтому нужно создать общий репозиторий, а в методе проверять какой это именно документ.
+    private void backToProductsCatalogue(Long chatId, Integer messageId) {
+        EditMessageText message = new EditMessageText();
+        message.setChatId(chatId.toString());
+        message.setMessageId(messageId);
+
+        // Set the text for the initial menu
+        message.setText("Ниже приведен каталог услуг, которые мы предоставляем.");
+
+        // Create the inline keyboard markup
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = getMenu(); // Reuse getMenu() to create buttons
+        inlineKeyboardMarkup.setKeyboard(rowsInline);
+
+        message.setReplyMarkup(inlineKeyboardMarkup);
+
+        try {
+            execute(message); // Edit the current message with the new menu
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при изменении сообщения на начальное меню: {}", e.getMessage());
+        }
+    }
+
+    private boolean isSale(String callbackData) {
+        List<String> sales = new ArrayList<>();
+        for (int i = 1; i <= countOfSales; i++) {
+            String documentText = saleRepository.findById(i).get().getName();
+            if (saleRepository.findById(i).isPresent()) {
+                sales.add(documentText);
+            } else {
+                log.error("Документ не найден [isSale]");
+            }
+        }
+        return sales.contains(callbackData);
+    }
+
+    private boolean isDocument(String callbackData) {
+        List<String> documents = new ArrayList<>();
+        for (int i = 1; i <= countOfDocuments; i++) {
+            String documentText = documentsRepository.findById(i).get().getName();
+            if (documentsRepository.findById(i).isPresent()) {
+                documents.add(documentText);
+            } else {
+                log.error("Документ не найден [isDocument]");
+            }
+        }
+        return documents.contains(callbackData);
+    }
+
+    private boolean isFinancialService(String callbackData) {
+        List<String> financialServices = new ArrayList<>();
+        for (int i = 1; i <= countOfFinancialServices; i++) {
+            String documentText = financialServiceRepository.findById(i).get().getName();
+            if (financialServiceRepository.findById(i).isPresent()) {
+                financialServices.add(documentText);
+            } else {
+                log.error("Документ не найден [isFinancialService]");
+            }
+        }
+        return financialServices.contains(callbackData);
+    }
+
+    private boolean isBankService(String callbackData) {
+        List<String> bankServices = new ArrayList<>();
+        for (int i = 1; i <= countOfBankServices; i++) {
+            String documentText = bankServiceRepository.findById(i).get().getName();
+            if (bankServiceRepository.findById(i).isPresent()) {
+                bankServices.add(documentText);
+            } else {
+                log.error("Документ не найден [isBankService]");
+            }
+        }
+        return bankServices.contains(callbackData);
+    }
+
+    private boolean isDigitalService(String callbackData) {
+        List<String> digitalServices = new ArrayList<>();
+        for (int i = 1; i <= countOfDigitalServices; i++) {
+            String documentText = digitalServiceRepository.findById(i).get().getName();
+            if (digitalServiceRepository.findById(i).isPresent()) {
+                digitalServices.add(documentText);
+            } else {
+                log.error("Документ не найден [isDigitalService]");
+            }
+        }
+        return digitalServices.contains(callbackData);
+    }
+
+    private boolean isOtherService(String callbackData) {
+        List<String> otherServices = new ArrayList<>();
+        for (int i = 1; i <= countOfBankServices; i++) {
+            String documentText = otherServiceRepository.findById(i).get().getName();
+            if (otherServiceRepository.findById(i).isPresent()) {
+                otherServices.add(documentText);
+            } else {
+                log.error("Документ не найден [isOtherService]");
+            }
+        }
+        return otherServices.contains(callbackData);
+    }
+
 
     private void showPrice(Long chatId, Integer messageId, String callbackData) {
         EditMessageText message = new EditMessageText();
@@ -119,25 +235,49 @@ public class BotService extends TelegramLongPollingBot {
         Optional<? extends PricedItem> itemInfo = Optional.empty();
 
         // Поиск данных в репозиториях
-        if (Arrays.asList("СТС", "ПТС", "Водительское удостоверение", "ГИМС",
-                        "Номерные знаки", "Подбор двойника", "Военный билет",
-                        "Паспорт", "Аттестат", "Дипломы", "Временное гражданство", "СНИЛС")
-                .contains(callbackData)) {
+        if (isDocument(callbackData)) {
             itemInfo = documentsRepository.findByName(callbackData);
-        } else if (Arrays.asList("Чистые карты", "Восстановление").contains(callbackData)) {
+        } else if (isFinancialService(callbackData)) {
             itemInfo = financialServiceRepository.findByName(callbackData);
+        } else if (isBankService(callbackData)) {
+            itemInfo = bankServiceRepository.findByName(callbackData);
+        } else if (isDigitalService(callbackData)) {
+            itemInfo = digitalServiceRepository.findByName(callbackData);
+        } else if (isOtherService(callbackData)) {
+            itemInfo = otherServiceRepository.findByName(callbackData);
+        } else if (isSale(callbackData)) {
+            itemInfo = saleRepository.findByName(callbackData);
         }
 
         // Обработка данных
         itemInfo.ifPresentOrElse(
-                item -> message.setText("Цена на %s: %d\n".formatted(item.getName().toLowerCase(), item.getPrice()) +
-                        "Договориться о приобретении: %s\n".formatted("@ссылка на аккаунт") +
-                        "За каждого приведенного друга даем 10000 рублей!"),
+                item -> {
+                    message.setText("Цена на товар \"%s\": %d\n\n".formatted(item.getName(), item.getPrice()) +
+                            "Договориться о приобретении: %s\n\n".formatted("@ссылка на аккаунт") +
+                            "За каждого приведенного друга даем 10000 рублей!");
+
+                    // Create the inline keyboard with a back button
+                    InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+                    List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+                    // Back button to return to the main menu
+                    InlineKeyboardButton backButton = new InlineKeyboardButton();
+                    backButton.setText("К главному меню");
+                    backButton.setCallbackData("Главное меню");
+
+                    List<InlineKeyboardButton> rowInline = new ArrayList<>();
+                    rowInline.add(backButton);
+                    rowsInline.add(rowInline);
+
+                    markup.setKeyboard(rowsInline);
+                    message.setReplyMarkup(markup);
+                },
                 () -> {
                     message.setText("Документ не найден");
                     log.error("Элемент с названием {} не найден", callbackData);
                 }
         );
+
 
         // Отправка сообщения
         try {
@@ -296,18 +436,6 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    private void showOtherOptionsCatalogue(Long chatId, Integer messageId) {
-
-    }
-
-    private void showDigitalServicesCatalogue(Long chatId, Integer messageId) {
-
-    }
-
-    private void showBankServicesCatalogue(Long chatId, Integer messageId) {
-
-    }
-
     private void ShowFinancialServiceCatalogue(Long chatId, Integer messageId) {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
@@ -346,6 +474,198 @@ public class BotService extends TelegramLongPollingBot {
         editText.setChatId(String.valueOf(chatId));
         editText.setMessageId(messageId);
         editText.setText("Выберите финансовую услугу:");
+
+        try {
+            execute(editText); // Редактируем текст сообщения
+            execute(editMessageReplyMarkup); // Редактируем кнопки
+
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
+        }
+    }
+
+    private void showBankServicesCatalogue(Long chatId, Integer messageId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+
+        // Переменная для отслеживания количества кнопок в текущем ряду
+        List<InlineKeyboardButton> currentRow = new ArrayList<>();
+
+        for (int i = 1; i <= countOfBankServices; i++) {
+            var document = bankServiceRepository.findById(i);
+            if (document.isPresent()) {
+                String documentName = document.get().getName();
+                currentRow.add(createButton(documentName));
+
+                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
+                if (currentRow.size() == 2) {
+                    rowsInline.add(currentRow);
+                    currentRow = new ArrayList<>(); // Создаем новый ряд
+                }
+            }
+        }
+
+        // Если остались кнопки в последнем ряду, добавляем их
+        if (!currentRow.isEmpty()) {
+            rowsInline.add(currentRow);
+        }
+
+        markup.setKeyboard(rowsInline);
+
+        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+        editMessageReplyMarkup.setChatId(chatId);
+        editMessageReplyMarkup.setMessageId(messageId);
+        editMessageReplyMarkup.setReplyMarkup(markup);
+
+        EditMessageText editText = new EditMessageText();
+        editText.setChatId(String.valueOf(chatId));
+        editText.setMessageId(messageId);
+        editText.setText("Выберите банковскую услугу:");
+
+        try {
+            execute(editText); // Редактируем текст сообщения
+            execute(editMessageReplyMarkup); // Редактируем кнопки
+
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
+        }
+    }
+
+    private void showDigitalServicesCatalogue(Long chatId, Integer messageId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+
+        // Переменная для отслеживания количества кнопок в текущем ряду
+        List<InlineKeyboardButton> currentRow = new ArrayList<>();
+
+        for (int i = 1; i <= countOfDigitalServices; i++) {
+            var document = digitalServiceRepository.findById(i);
+            if (document.isPresent()) {
+                String documentName = document.get().getName();
+                currentRow.add(createButton(documentName));
+
+                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
+                if (currentRow.size() == 2) {
+                    rowsInline.add(currentRow);
+                    currentRow = new ArrayList<>(); // Создаем новый ряд
+                }
+            }
+        }
+
+        // Если остались кнопки в последнем ряду, добавляем их
+        if (!currentRow.isEmpty()) {
+            rowsInline.add(currentRow);
+        }
+
+        markup.setKeyboard(rowsInline);
+
+        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+        editMessageReplyMarkup.setChatId(chatId);
+        editMessageReplyMarkup.setMessageId(messageId);
+        editMessageReplyMarkup.setReplyMarkup(markup);
+
+        EditMessageText editText = new EditMessageText();
+        editText.setChatId(String.valueOf(chatId));
+        editText.setMessageId(messageId);
+        editText.setText("Выберите цифровую услугу:");
+
+        try {
+            execute(editText); // Редактируем текст сообщения
+            execute(editMessageReplyMarkup); // Редактируем кнопки
+
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
+        }
+    }
+
+    private void showOtherOptionsCatalogue(Long chatId, Integer messageId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+
+        // Переменная для отслеживания количества кнопок в текущем ряду
+        List<InlineKeyboardButton> currentRow = new ArrayList<>();
+
+        for (int i = 1; i <= countOfOtherServices; i++) {
+            var document = otherServiceRepository.findById(i);
+            if (document.isPresent()) {
+                String documentName = document.get().getName();
+                currentRow.add(createButton(documentName));
+
+                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
+                if (currentRow.size() == 2) {
+                    rowsInline.add(currentRow);
+                    currentRow = new ArrayList<>(); // Создаем новый ряд
+                }
+            }
+        }
+
+        // Если остались кнопки в последнем ряду, добавляем их
+        if (!currentRow.isEmpty()) {
+            rowsInline.add(currentRow);
+        }
+
+        markup.setKeyboard(rowsInline);
+
+        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+        editMessageReplyMarkup.setChatId(chatId);
+        editMessageReplyMarkup.setMessageId(messageId);
+        editMessageReplyMarkup.setReplyMarkup(markup);
+
+        EditMessageText editText = new EditMessageText();
+        editText.setChatId(String.valueOf(chatId));
+        editText.setMessageId(messageId);
+        editText.setText("Выберите услугу:");
+
+        try {
+            execute(editText); // Редактируем текст сообщения
+            execute(editMessageReplyMarkup); // Редактируем кнопки
+
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
+        }
+    }
+
+    private void showSalesCatalogue(Long chatId, Integer messageId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+
+        // Переменная для отслеживания количества кнопок в текущем ряду
+        List<InlineKeyboardButton> currentRow = new ArrayList<>();
+
+        for (int i = 1; i <= countOfSales; i++) {
+            var document = saleRepository.findById(i);
+            if (document.isPresent()) {
+                String documentName = document.get().getName();
+                currentRow.add(createButton(documentName));
+
+                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
+                if (currentRow.size() == 2) {
+                    rowsInline.add(currentRow);
+                    currentRow = new ArrayList<>(); // Создаем новый ряд
+                }
+            }
+        }
+
+        // Если остались кнопки в последнем ряду, добавляем их
+        if (!currentRow.isEmpty()) {
+            rowsInline.add(currentRow);
+        }
+
+        markup.setKeyboard(rowsInline);
+
+        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+        editMessageReplyMarkup.setChatId(chatId);
+        editMessageReplyMarkup.setMessageId(messageId);
+        editMessageReplyMarkup.setReplyMarkup(markup);
+
+        EditMessageText editText = new EditMessageText();
+        editText.setChatId(String.valueOf(chatId));
+        editText.setMessageId(messageId);
+        editText.setText("Выберите акцию:");
 
         try {
             execute(editText); // Редактируем текст сообщения

@@ -19,3 +19,7 @@ catalogue:
   count-of-categories: 6
   count-of-documents: 12
   count-of-financial-services: 2
+  count-of-bank-services: 1
+  count-of-digital-services: 2
+  count-of-other-services: 5
+  count-of-sales: 1
