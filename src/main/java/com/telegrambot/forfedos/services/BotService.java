@@ -1,14 +1,15 @@
 package com.telegrambot.forfedos.services;
 
 import com.telegrambot.forfedos.config.BotConfig;
-import com.telegrambot.forfedos.models.Customer;
-import com.telegrambot.forfedos.models.PricedItem;
+import com.telegrambot.forfedos.models.*;
 import com.telegrambot.forfedos.repositories.*;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -21,6 +22,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
+import java.util.function.Function;
 
 @RequiredArgsConstructor
 @Component
@@ -101,22 +103,22 @@ public class BotService extends TelegramLongPollingBot {
             Map<String, Integer> documents = findDocuments();
             switch (callBackData) {
                 case "Документы":
-                    showDocumentsCatalogue(chatId, messageId);
+                    showCatalogue(chatId, messageId, documentsRepository, Document::getName, "Выберите документ");
                     break;
                 case "Финансовые услуги":
-                    ShowFinancialServiceCatalogue(chatId, messageId);
+                    showCatalogue(chatId, messageId, financialServiceRepository, FinancialService::getName, "Выберите финансовую услугу");
                     break;
                 case "Банковские услуги":
-                    showBankServicesCatalogue(chatId, messageId);
+                    showCatalogue(chatId, messageId, bankServiceRepository, BankService::getName, "Выберите банковскую услугу");
                     break;
                 case "Цифровые услуги":
-                    showDigitalServicesCatalogue(chatId, messageId);
+                    showCatalogue(chatId, messageId, digitalServiceRepository, DigitalService::getName, "Выберите цифровую услугу");
                     break;
                 case "Прочее":
-                    showOtherOptionsCatalogue(chatId, messageId);
+                    showCatalogue(chatId, messageId, otherServiceRepository, OtherService::getName, "Выберите услугу");
                     break;
                 case "Акции":
-                    showSalesCatalogue(chatId, messageId);
+                    showCatalogue(chatId, messageId, saleRepository, Sale::getName, "Выберите акцию");
                     break;
                 case "Назад":
                     backForOneStep(chatId, messageId);
@@ -420,299 +422,73 @@ public class BotService extends TelegramLongPollingBot {
         return rowsInline;
     }
 
-    private void showDocumentsCatalogue(Long chatId, Integer messageId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-        // Переменная для отслеживания количества кнопок в текущем ряду
-        List<InlineKeyboardButton> currentRow = new ArrayList<>();
-
-        for (int i = 1; i <= countOfDocuments; i++) {
-            var document = documentsRepository.findById(i);
-            if (document.isPresent()) {
-                String document_name = document.get().getName();
-                currentRow.add(createButton(document_name));
-
-                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
-                if (currentRow.size() == 2) {
-                    rowsInline.add(currentRow);
-                    currentRow = new ArrayList<>(); // Создаем новый ряд
-                }
-            }
-        }
-
-        // Если остались кнопки в последнем ряду, добавляем их
-        if (!currentRow.isEmpty()) {
-            rowsInline.add(currentRow);
-        }
-
-        markup.setKeyboard(rowsInline);
-
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(chatId);
-        editMessageReplyMarkup.setMessageId(messageId);
-        editMessageReplyMarkup.setReplyMarkup(markup);
-
-        EditMessageText editText = new EditMessageText();
-        editText.setChatId(String.valueOf(chatId));
-        editText.setMessageId(messageId);
-        editText.setText("Выберите документ:");
-
-        try {
-            execute(editText); // Редактируем текст сообщения
-            execute(editMessageReplyMarkup); // Редактируем кнопки
-
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе получения документов", e);
-        }
-    }
-
-    private void ShowFinancialServiceCatalogue(Long chatId, Integer messageId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-
-        // Переменная для отслеживания количества кнопок в текущем ряду
-        List<InlineKeyboardButton> currentRow = new ArrayList<>();
-
-        for (int i = 1; i <= countOfFinancialServices; i++) {
-            var document = financialServiceRepository.findById(i);
-            if (document.isPresent()) {
-                String documentName = document.get().getName();
-                currentRow.add(createButton(documentName));
-
-                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
-                if (currentRow.size() == 2) {
-                    rowsInline.add(currentRow);
-                    currentRow = new ArrayList<>(); // Создаем новый ряд
-                }
-            }
-        }
-
-        // Если остались кнопки в последнем ряду, добавляем их
-        if (!currentRow.isEmpty()) {
-            rowsInline.add(currentRow);
-        }
-
-        markup.setKeyboard(rowsInline);
-
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(chatId);
-        editMessageReplyMarkup.setMessageId(messageId);
-        editMessageReplyMarkup.setReplyMarkup(markup);
-
-        EditMessageText editText = new EditMessageText();
-        editText.setChatId(String.valueOf(chatId));
-        editText.setMessageId(messageId);
-        editText.setText("Выберите финансовую услугу:");
-
-        try {
-            execute(editText); // Редактируем текст сообщения
-            execute(editMessageReplyMarkup); // Редактируем кнопки
-
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
-        }
-    }
-
-    private void showBankServicesCatalogue(Long chatId, Integer messageId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-
-        // Переменная для отслеживания количества кнопок в текущем ряду
-        List<InlineKeyboardButton> currentRow = new ArrayList<>();
-
-        for (int i = 1; i <= countOfBankServices; i++) {
-            var document = bankServiceRepository.findById(i);
-            if (document.isPresent()) {
-                String documentName = document.get().getName();
-                currentRow.add(createButton(documentName));
-
-                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
-                if (currentRow.size() == 2) {
-                    rowsInline.add(currentRow);
-                    currentRow = new ArrayList<>(); // Создаем новый ряд
-                }
-            }
-        }
-
-        // Если остались кнопки в последнем ряду, добавляем их
-        if (!currentRow.isEmpty()) {
-            rowsInline.add(currentRow);
-        }
-
-        markup.setKeyboard(rowsInline);
-
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(chatId);
-        editMessageReplyMarkup.setMessageId(messageId);
-        editMessageReplyMarkup.setReplyMarkup(markup);
-
-        EditMessageText editText = new EditMessageText();
-        editText.setChatId(String.valueOf(chatId));
-        editText.setMessageId(messageId);
-        editText.setText("Выберите банковскую услугу:");
-
-        try {
-            execute(editText); // Редактируем текст сообщения
-            execute(editMessageReplyMarkup); // Редактируем кнопки
-
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
-        }
-    }
-
-    private void showDigitalServicesCatalogue(Long chatId, Integer messageId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-
-        // Переменная для отслеживания количества кнопок в текущем ряду
-        List<InlineKeyboardButton> currentRow = new ArrayList<>();
-
-        for (int i = 1; i <= countOfDigitalServices; i++) {
-            var document = digitalServiceRepository.findById(i);
-            if (document.isPresent()) {
-                String documentName = document.get().getName();
-                currentRow.add(createButton(documentName));
-
-                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
-                if (currentRow.size() == 2) {
-                    rowsInline.add(currentRow);
-                    currentRow = new ArrayList<>(); // Создаем новый ряд
-                }
-            }
-        }
-
-        // Если остались кнопки в последнем ряду, добавляем их
-        if (!currentRow.isEmpty()) {
-            rowsInline.add(currentRow);
-        }
-
-        markup.setKeyboard(rowsInline);
-
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(chatId);
-        editMessageReplyMarkup.setMessageId(messageId);
-        editMessageReplyMarkup.setReplyMarkup(markup);
-
-        EditMessageText editText = new EditMessageText();
-        editText.setChatId(String.valueOf(chatId));
-        editText.setMessageId(messageId);
-        editText.setText("Выберите цифровую услугу:");
-
-        try {
-            execute(editText); // Редактируем текст сообщения
-            execute(editMessageReplyMarkup); // Редактируем кнопки
-
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
-        }
-    }
-
-    private void showOtherOptionsCatalogue(Long chatId, Integer messageId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-
-        // Переменная для отслеживания количества кнопок в текущем ряду
-        List<InlineKeyboardButton> currentRow = new ArrayList<>();
-
-        for (int i = 1; i <= countOfOtherServices; i++) {
-            var document = otherServiceRepository.findById(i);
-            if (document.isPresent()) {
-                String documentName = document.get().getName();
-                currentRow.add(createButton(documentName));
-
-                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
-                if (currentRow.size() == 2) {
-                    rowsInline.add(currentRow);
-                    currentRow = new ArrayList<>(); // Создаем новый ряд
-                }
-            }
-        }
-
-        // Если остались кнопки в последнем ряду, добавляем их
-        if (!currentRow.isEmpty()) {
-            rowsInline.add(currentRow);
-        }
-
-        markup.setKeyboard(rowsInline);
-
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(chatId);
-        editMessageReplyMarkup.setMessageId(messageId);
-        editMessageReplyMarkup.setReplyMarkup(markup);
-
-        EditMessageText editText = new EditMessageText();
-        editText.setChatId(String.valueOf(chatId));
-        editText.setMessageId(messageId);
-        editText.setText("Выберите услугу:");
-
-        try {
-            execute(editText); // Редактируем текст сообщения
-            execute(editMessageReplyMarkup); // Редактируем кнопки
-
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
-        }
-    }
-
-    private void showSalesCatalogue(Long chatId, Integer messageId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-
-        // Переменная для отслеживания количества кнопок в текущем ряду
-        List<InlineKeyboardButton> currentRow = new ArrayList<>();
-
-        for (int i = 1; i <= countOfSales; i++) {
-            var document = saleRepository.findById(i);
-            if (document.isPresent()) {
-                String documentName = document.get().getName();
-                currentRow.add(createButton(documentName));
-
-                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
-                if (currentRow.size() == 2) {
-                    rowsInline.add(currentRow);
-                    currentRow = new ArrayList<>(); // Создаем новый ряд
-                }
-            }
-        }
-
-        // Если остались кнопки в последнем ряду, добавляем их
-        if (!currentRow.isEmpty()) {
-            rowsInline.add(currentRow);
-        }
-
-        markup.setKeyboard(rowsInline);
-
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(chatId);
-        editMessageReplyMarkup.setMessageId(messageId);
-        editMessageReplyMarkup.setReplyMarkup(markup);
-
-        EditMessageText editText = new EditMessageText();
-        editText.setChatId(String.valueOf(chatId));
-        editText.setMessageId(messageId);
-        editText.setText("Выберите акцию:");
-
-        try {
-            execute(editText); // Редактируем текст сообщения
-            execute(editMessageReplyMarkup); // Редактируем кнопки
-
-        } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе получения финансовых услуг", e);
-        }
-    }
-
-
     // Вспомогательный метод для создания кнопки
     private InlineKeyboardButton createButton(String name) {
         InlineKeyboardButton button = new InlineKeyboardButton();
         button.setText(name);
         button.setCallbackData(name);
         return button;
+    }
+
+    private <T> void showCatalogue(
+            Long chatId,
+            Integer messageId,
+            CrudRepository<T, Integer> repository,
+            Function<T, String> nameExtractor,
+            String choiceText) {
+
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+        // Переменная для отслеживания количества кнопок в текущем ряду
+        List<InlineKeyboardButton> currentRow = new ArrayList<>();
+
+        // Получаем количество объектов из репозитория
+        long countOfItems = repository.count();
+
+        for (int i = 1; i <= countOfItems; i++) {
+            // Ищем объект по идентификатору
+            var item = repository.findById(i);
+
+            // Проверяем, существует ли объект
+            if (item.isPresent()) {
+                // Используем переданный nameExtractor для извлечения имени объекта
+                String itemName = nameExtractor.apply(item.get());
+                currentRow.add(createButton(itemName));
+
+                // Если текущий ряд содержит 2 кнопки, добавляем его в список и создаем новый ряд
+                if (currentRow.size() == 2) {
+                    rowsInline.add(currentRow);
+                    currentRow = new ArrayList<>(); // Создаем новый ряд
+                }
+            }
+        }
+
+        // Если остались кнопки в последнем ряду, добавляем их
+        if (!currentRow.isEmpty()) {
+            rowsInline.add(currentRow);
+        }
+
+        // Устанавливаем клавиатуру с кнопками
+        markup.setKeyboard(rowsInline);
+
+        // Обновляем текст сообщения
+        EditMessageText editText = new EditMessageText();
+        editText.setChatId(String.valueOf(chatId));
+        editText.setMessageId(messageId);
+        editText.setText(choiceText);
+
+        // Обновляем кнопки сообщения
+        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+        editMessageReplyMarkup.setChatId(chatId);
+        editMessageReplyMarkup.setMessageId(messageId);
+        editMessageReplyMarkup.setReplyMarkup(markup);
+
+        try {
+            execute(editText); // Редактируем текст сообщения
+            execute(editMessageReplyMarkup); // Редактируем кнопки
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при изменении сообщения в методе", e);
+        }
     }
 }
