@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -22,6 +21,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @RequiredArgsConstructor
@@ -39,29 +39,10 @@ public class BotService extends TelegramLongPollingBot {
     private final OtherServiceRepository otherServiceRepository;
     private final SaleRepository saleRepository;
 
+    private final Map<Long, Deque<MenuState>> userStates = new ConcurrentHashMap<>();
 
-    @Value("${catalogue.count-of-categories}")
-    private Integer countOfCategories;
-
-    @Value("${catalogue.count-of-documents}")
-    private Integer countOfDocuments;
-
-    @Value("${catalogue.count-of-financial-services}")
-    private Integer countOfFinancialServices;
-
-    @Value("${catalogue.count-of-bank-services}")
-    private Integer countOfBankServices;
-
-    @Value("${catalogue.count-of-digital-services}")
-    private Integer countOfDigitalServices;
-
-    @Value("${catalogue.count-of-other-services}")
-    private Integer countOfOtherServices;
-
-    @Value("${catalogue.count-of-sales}")
-    private Integer countOfSales;
-
-    private final Map<Long, Stack<String>> customerMessagesHistory = new HashMap<>();
+   @Value("${catalogue.count-of-categories}")
+    private int countOfCategories;
 
 
     @Override
@@ -80,7 +61,7 @@ public class BotService extends TelegramLongPollingBot {
             String message = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
 
-            if (message.contains("/send") && (Objects.equals(botConfig.getOwner2ChatId(), chatId) || Objects.equals(botConfig.getOwnerChatId(), chatId) | Objects.equals(botConfig.getOwner3ChatId(), chatId))) {
+            if (message.contains("/send") && isOwner(chatId)) {
                 var textToSend = EmojiParser.parseToUnicode(message.substring(message.indexOf(" ")));
                 var customers = customerRepository.findAll();
                 for (Customer customer : customers) {
@@ -100,25 +81,54 @@ public class BotService extends TelegramLongPollingBot {
             String callBackData = callBackQuery.getData();
             Integer messageId = callBackQuery.getMessage().getMessageId();
             Long chatId = callBackQuery.getMessage().getChatId();
-            Map<String, Integer> documents = findDocuments();
             switch (callBackData) {
                 case "Документы":
-                    showCatalogue(chatId, messageId, documentsRepository, Document::getName, "Выберите документ");
+                    showCatalogue(
+                            chatId, messageId,
+                            documentsRepository, getNameExtractorForState(MenuState.DOCUMENTS_MENU),
+                            getChoiceTextForState(MenuState.DOCUMENTS_MENU),
+                            MenuState.DOCUMENTS_MENU, true
+                    );
                     break;
                 case "Финансовые услуги":
-                    showCatalogue(chatId, messageId, financialServiceRepository, FinancialService::getName, "Выберите финансовую услугу");
+                    showCatalogue(
+                            chatId, messageId,
+                            financialServiceRepository, getNameExtractorForState(MenuState.FINANCIAL_SERVICES_MENU),
+                            getChoiceTextForState(MenuState.FINANCIAL_SERVICES_MENU),
+                            MenuState.FINANCIAL_SERVICES_MENU, true
+                    );
                     break;
                 case "Банковские услуги":
-                    showCatalogue(chatId, messageId, bankServiceRepository, BankService::getName, "Выберите банковскую услугу");
+                    showCatalogue(
+                            chatId, messageId,
+                            bankServiceRepository, getNameExtractorForState(MenuState.BANK_SERVICES_MENU),
+                            getChoiceTextForState(MenuState.BANK_SERVICES_MENU),
+                            MenuState.BANK_SERVICES_MENU, true
+                    );
                     break;
                 case "Цифровые услуги":
-                    showCatalogue(chatId, messageId, digitalServiceRepository, DigitalService::getName, "Выберите цифровую услугу");
+                    showCatalogue(
+                            chatId, messageId,
+                            digitalServiceRepository, getNameExtractorForState(MenuState.DIGITAL_SERVICES_MENU),
+                            getChoiceTextForState(MenuState.DIGITAL_SERVICES_MENU),
+                            MenuState.DIGITAL_SERVICES_MENU, true
+                    );
                     break;
                 case "Прочее":
-                    showCatalogue(chatId, messageId, otherServiceRepository, OtherService::getName, "Выберите услугу");
+                    showCatalogue(
+                            chatId, messageId,
+                            otherServiceRepository, getNameExtractorForState(MenuState.OTHER_SERVICES_MENU),
+                            getChoiceTextForState(MenuState.OTHER_SERVICES_MENU),
+                            MenuState.OTHER_SERVICES_MENU, true
+                    );
                     break;
                 case "Акции":
-                    showCatalogue(chatId, messageId, saleRepository, Sale::getName, "Выберите акцию");
+                    showCatalogue(
+                            chatId, messageId,
+                            saleRepository, getNameExtractorForState(MenuState.SALES_MENU),
+                            getChoiceTextForState(MenuState.SALES_MENU),
+                            MenuState.SALES_MENU, true
+                    );
                     break;
                 case "Назад":
                     backForOneStep(chatId, messageId);
@@ -133,50 +143,191 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    private void addMessageToHistory(Long chatId, String callbackData) {
-        customerMessagesHistory.putIfAbsent(chatId, new Stack<>());
-        customerMessagesHistory.get(chatId).push(callbackData);
-    }
-
     private void backForOneStep(Long chatId, Integer messageId) {
-        Stack<String> history = customerMessagesHistory.get(chatId);
-
-        if (history.isEmpty()) {
-            log.error("Попытка возврата назад на главном меню");
+        Deque<MenuState> stack = userStates.get(chatId);
+        if (stack == null || stack.isEmpty()) {
+            log.warn("Стек состояний пуст или не инициализирован для chatId: {}", chatId);
+            getProductsCatalogue(chatId); // Возвращаем к основному каталогу
             return;
         }
 
-        String previousMessage = history.pop();
+        // Удаляем текущее состояние
+        stack.pop();
 
-        EditMessageText message = new EditMessageText();
-        message.setChatId(chatId);
-        message.setMessageId(messageId);
-        message.setText(previousMessage);
+        if (stack.isEmpty()) {
+            // Если стек пуст, возвращаем к основному меню
+            getProductsCatalogue(chatId);
+            return;
+        }
+
+        // Получаем предыдущее состояние
+        MenuState previousState = stack.peek();
+
+        // В зависимости от состояния вызываем соответствующий метод
+        switch (previousState) {
+            case MAIN_MENU:
+                backToProductsCatalogue(chatId, messageId);
+                break;
+            case DOCUMENTS_MENU:
+                showCatalogue(
+                        chatId, messageId,
+                        documentsRepository, getNameExtractorForState(MenuState.DOCUMENTS_MENU),
+                        getChoiceTextForState(MenuState.DOCUMENTS_MENU),
+                        MenuState.DOCUMENTS_MENU, false
+                );
+                break;
+            case FINANCIAL_SERVICES_MENU:
+                showCatalogue(
+                        chatId, messageId,
+                        financialServiceRepository, getNameExtractorForState(MenuState.FINANCIAL_SERVICES_MENU),
+                        getChoiceTextForState(MenuState.FINANCIAL_SERVICES_MENU),
+                        MenuState.FINANCIAL_SERVICES_MENU, false
+                );
+                break;
+            case BANK_SERVICES_MENU:
+                showCatalogue(
+                        chatId, messageId,
+                        bankServiceRepository, getNameExtractorForState(MenuState.BANK_SERVICES_MENU),
+                        getChoiceTextForState(MenuState.BANK_SERVICES_MENU),
+                        MenuState.BANK_SERVICES_MENU, false
+                );
+                break;
+            case DIGITAL_SERVICES_MENU:
+                showCatalogue(
+                        chatId, messageId,
+                        digitalServiceRepository, getNameExtractorForState(MenuState.DIGITAL_SERVICES_MENU),
+                        getChoiceTextForState(MenuState.DIGITAL_SERVICES_MENU),
+                        MenuState.DIGITAL_SERVICES_MENU, false
+                );
+                break;
+            case OTHER_SERVICES_MENU:
+                showCatalogue(
+                        chatId, messageId,
+                        otherServiceRepository, getNameExtractorForState(MenuState.OTHER_SERVICES_MENU),
+                        getChoiceTextForState(MenuState.OTHER_SERVICES_MENU),
+                        MenuState.OTHER_SERVICES_MENU, false
+                );
+                break;
+            case SALES_MENU:
+                showCatalogue(
+                        chatId, messageId,
+                        saleRepository, getNameExtractorForState(MenuState.SALES_MENU),
+                        getChoiceTextForState(MenuState.SALES_MENU),
+                        MenuState.SALES_MENU, false
+                );
+                break;
+            case ITEM_DETAILS:
+                // Возвращаемся к соответствующему каталогу
+                // Для упрощения возвращаемся к предыдущему каталогу
+                if (stack.size() >= 2) { // Проверяем, есть ли ещё одно предыдущее состояние
+                    stack.pop(); // Удаляем ITEM_DETAILS
+                    MenuState catalogState = stack.peek();
+                    showCatalogue(
+                            chatId, messageId,
+                            getRepositoryForState(catalogState),
+                            getNameExtractorForState(catalogState),
+                            getChoiceTextForState(catalogState),
+                            catalogState, false
+                    );
+                } else {
+                    backToProductsCatalogue(chatId, messageId);
+                }
+                break;
+            // Добавьте другие состояния по мере необходимости
+            default:
+                getProductsCatalogue(chatId);
+                break;
+        }
+    }
+
+    // Вспомогательные методы для получения репозитория, экстрактора имени и текста выбора на основе состояния
+    private <T> CrudRepository<T, Integer> getRepositoryForState(MenuState state) {
+        return switch (state) {
+            case DOCUMENTS_MENU -> (CrudRepository<T, Integer>) documentsRepository;
+            case FINANCIAL_SERVICES_MENU -> (CrudRepository<T, Integer>) financialServiceRepository;
+            case BANK_SERVICES_MENU -> (CrudRepository<T, Integer>) bankServiceRepository;
+            case DIGITAL_SERVICES_MENU -> (CrudRepository<T, Integer>) digitalServiceRepository;
+            case OTHER_SERVICES_MENU -> (CrudRepository<T, Integer>) otherServiceRepository;
+            case SALES_MENU -> (CrudRepository<T, Integer>) saleRepository;
+            default -> null;
+        };
+    }
+
+    private Function<Object, String> getNameExtractorForState(MenuState state) {
+        switch (state) {
+            case DOCUMENTS_MENU:
+                return obj -> ((Document) obj).getName();
+            case FINANCIAL_SERVICES_MENU:
+                return obj -> ((FinancialService) obj).getName();
+            case BANK_SERVICES_MENU:
+                return obj -> ((BankService) obj).getName();
+            case DIGITAL_SERVICES_MENU:
+                return obj -> ((DigitalService) obj).getName();
+            case OTHER_SERVICES_MENU:
+                return obj -> ((OtherService) obj).getName();
+            case SALES_MENU:
+                return obj -> ((Sale) obj).getName();
+            default:
+                return obj -> "Unknown";
+        }
+    }
+
+    private String getChoiceTextForState(MenuState state) {
+        switch (state) {
+            case DOCUMENTS_MENU:
+                return "Выберите документ";
+            case FINANCIAL_SERVICES_MENU:
+                return "Выберите финансовую услугу";
+            case BANK_SERVICES_MENU:
+                return "Выберите банковскую услугу";
+            case DIGITAL_SERVICES_MENU:
+                return "Выберите цифровую услугу";
+            case OTHER_SERVICES_MENU:
+                return "Выберите услугу";
+            case SALES_MENU:
+                return "Выберите акцию";
+            default:
+                return "Выберите опцию";
+        }
     }
 
     private void backToProductsCatalogue(Long chatId, Integer messageId) {
-        EditMessageText message = new EditMessageText();
-        message.setChatId(chatId.toString());
-        message.setMessageId(messageId);
+        // Очищаем стек состояний и устанавливаем MAIN_MENU
+        Deque<MenuState> stack = userStates.computeIfAbsent(chatId, k -> new ArrayDeque<>());
+        stack.clear();
+        stack.push(MenuState.MAIN_MENU);
 
-        // Set the text for the initial menu
-        message.setText("Ниже приведен каталог услуг, которые мы предоставляем.");
-
-        // Create the inline keyboard markup
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = getMenu(); // Reuse getMenu() to create buttons
-        inlineKeyboardMarkup.setKeyboard(rowsInline);
-
-        message.setReplyMarkup(inlineKeyboardMarkup);
+        EditMessageText message = getEditMessageTextForBackToProductsCatalogue(chatId, messageId);
 
         try {
-            execute(message); // Edit the current message with the new menu
+            execute(message); // Изменяем текущее сообщение на главное меню
         } catch (TelegramApiException e) {
             log.error("Ошибка при изменении сообщения на начальное меню: {}", e.getMessage());
         }
     }
 
+    private EditMessageText getEditMessageTextForBackToProductsCatalogue(Long chatId, Integer messageId) {
+        EditMessageText message = new EditMessageText();
+        message.setChatId(chatId.toString());
+        message.setMessageId(messageId);
+
+        // Устанавливаем текст для главного меню
+        message.setText("Ниже приведен каталог услуг, которые мы предоставляем.");
+
+        // Создаём инлайн-клавиатуру с основными категориями
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = getMenu(); // Используем существующий метод для создания кнопок
+        inlineKeyboardMarkup.setKeyboard(rowsInline);
+
+        message.setReplyMarkup(inlineKeyboardMarkup);
+        return message;
+    }
+
     private void showPrice(Long chatId, Integer messageId, String callbackData) {
+        // Сохраняем состояние деталей элемента
+        Deque<MenuState> stack = userStates.computeIfAbsent(chatId, k -> new ArrayDeque<>());
+        stack.push(MenuState.ITEM_DETAILS);
+
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId.toString());
         message.setMessageId(messageId);
@@ -193,21 +344,7 @@ public class BotService extends TelegramLongPollingBot {
 
                     // Создание инлайн-клавиатуры с кнопками
                     InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-                    List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-                    // Кнопка "Назад"
-                    InlineKeyboardButton backToMainMenuButton = new InlineKeyboardButton();
-                    backToMainMenuButton.setText("К главному меню");
-                    backToMainMenuButton.setCallbackData("Главное меню");
-
-                    InlineKeyboardButton backForOneStepButton = new InlineKeyboardButton();
-                    backForOneStepButton.setText("Назад");
-                    backForOneStepButton.setCallbackData("Назад");
-
-                    List<InlineKeyboardButton> rowInline = new ArrayList<>();
-                    rowInline.add(backForOneStepButton);
-                    rowInline.add(backToMainMenuButton);
-                    rowsInline.add(rowInline);
+                    List<List<InlineKeyboardButton>> rowsInline = getListsForShowPrice();
 
                     markup.setKeyboard(rowsInline);
                     message.setReplyMarkup(markup);
@@ -218,7 +355,6 @@ public class BotService extends TelegramLongPollingBot {
                 }
         );
 
-
         // Отправка сообщения
         try {
             execute(message);
@@ -227,17 +363,23 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    private Map<String, Integer> findDocuments() {
-        Map<String, Integer> documents = new HashMap<>();
-        for (int i = 1; i <= countOfDocuments; i++) {
-            var document = documentsRepository.findById(i);
-            if (document.isPresent()) {
-                documents.put(document.get().getName(), i);
-            } else {
-                log.error("Документ не найден");
-            }
-        }
-        return documents;
+    private static List<List<InlineKeyboardButton>> getListsForShowPrice() {
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+        // Кнопка "Назад"
+        InlineKeyboardButton backToMainMenuButton = new InlineKeyboardButton();
+        backToMainMenuButton.setText("К главному меню");
+        backToMainMenuButton.setCallbackData("Главное меню");
+
+        InlineKeyboardButton backForOneStepButton = new InlineKeyboardButton();
+        backForOneStepButton.setText("Назад");
+        backForOneStepButton.setCallbackData("Назад");
+
+        List<InlineKeyboardButton> rowInline = new ArrayList<>();
+        rowInline.add(backForOneStepButton);
+        rowInline.add(backToMainMenuButton);
+        rowsInline.add(rowInline);
+        return rowsInline;
     }
 
 
@@ -254,8 +396,14 @@ public class BotService extends TelegramLongPollingBot {
             customerRepository.save(customer);
 
             log.info("Customer {} has been saved to the database", customer);
+
+            // Инициализируем стек состояний с MAIN_MENU
+            Deque<MenuState> stack = new ArrayDeque<>();
+            stack.push(MenuState.MAIN_MENU);
+            userStates.put(chatId, stack);
         }
     }
+
 
     //Обработка метода, отвечающего за команду start.
     private void startCommandReceived(Long chatId, String name) {
@@ -278,8 +426,13 @@ public class BotService extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("Ошибка при отправке сообщения с клавиатурой пользователю");
+            log.error("Ошибка при отправке сообщения с клавиатурой пользователю", e);
         }
+
+        // Устанавливаем состояние MAIN_MENU
+        Deque<MenuState> stack = userStates.computeIfAbsent(chatId, k -> new ArrayDeque<>());
+        stack.clear();
+        stack.push(MenuState.MAIN_MENU);
     }
 
     private List<List<InlineKeyboardButton>> getMenu() {
@@ -303,12 +456,21 @@ public class BotService extends TelegramLongPollingBot {
     }
 
 
-    private <T> void showCatalogue(
+    private void showCatalogue(
             Long chatId,
             Integer messageId,
-            CrudRepository<T, Integer> repository,
-            Function<T, String> nameExtractor,
-            String choiceText) {
+            CrudRepository<?, Integer> repository,
+            Function<Object, String> nameExtractor,
+            String choiceText,
+            MenuState newState,
+            boolean pushState // Новый параметр
+    ) {
+
+        // Сохраняем новое состояние только если pushState == true
+        if (pushState) {
+            Deque<MenuState> stack = userStates.computeIfAbsent(chatId, k -> new ArrayDeque<>());
+            stack.push(newState);
+        }
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
@@ -342,6 +504,12 @@ public class BotService extends TelegramLongPollingBot {
             rowsInline.add(currentRow);
         }
 
+        // Добавляем кнопку "Назад"
+        InlineKeyboardButton backButton = new InlineKeyboardButton();
+        backButton.setText("Назад");
+        backButton.setCallbackData("Назад"); // Убедитесь, что это значение будет обработано
+        rowsInline.add(Collections.singletonList(backButton)); // Добавляем кнопку "Назад"
+
         // Устанавливаем клавиатуру с кнопками
         markup.setKeyboard(rowsInline);
 
@@ -361,7 +529,7 @@ public class BotService extends TelegramLongPollingBot {
             execute(editText); // Редактируем текст сообщения
             execute(editMessageReplyMarkup); // Редактируем кнопки
         } catch (TelegramApiException e) {
-            log.error("Ошибка при изменении сообщения в методе", e);
+            log.error("Ошибка при изменении сообщения в методе showCatalogue", e);
         }
     }
 
@@ -385,6 +553,7 @@ public class BotService extends TelegramLongPollingBot {
         }
         return Optional.empty();
     }
+
 
     //Метод для отправки Message пользователю.
     private void executeMessage(SendMessage message) {
@@ -421,4 +590,13 @@ public class BotService extends TelegramLongPollingBot {
         button.setCallbackData(name);
         return button;
     }
+
+    private boolean isOwner(Long chatId) {
+        return (
+                Objects.equals(botConfig.getOwner2ChatId(), chatId) ||
+                        Objects.equals(botConfig.getOwnerChatId(), chatId) ||
+                        Objects.equals(botConfig.getOwner3ChatId(), chatId)
+        );
+    }
+
 }
