@@ -61,7 +61,7 @@ public class BotService extends TelegramLongPollingBot {
     @Value("${catalogue.count-of-sales}")
     private Integer countOfSales;
 
-    private final Map<Long, Stack<String>> customerMessagesHistory = new HashMap<>();
+    private final Map<Long, Deque<MessageState>> messageHistory = new HashMap<>();
 
 
     @Override
@@ -133,28 +133,40 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
-    private void addMessageToHistory(Long chatId, String callbackData) {
-        customerMessagesHistory.putIfAbsent(chatId, new Stack<>());
-        customerMessagesHistory.get(chatId).push(callbackData);
-    }
-
     private void backForOneStep(Long chatId, Integer messageId) {
-        Stack<String> history = customerMessagesHistory.get(chatId);
+        Deque<MessageState> history = messageHistory.get(chatId);
 
-        if (history.isEmpty()) {
-            log.error("Попытка возврата назад на главном меню");
+        if (history == null || history.size() < 2) {
+            // Если истории нет или не хватает элементов, возвращаем в главное меню
+            backToProductsCatalogue(chatId, messageId);
             return;
         }
 
-        String previousMessage = history.pop();
+        // Удаляем текущее состояние и получаем предыдущее
+        history.pollLast();
+        MessageState previousState = history.peekLast();
 
-        EditMessageText message = new EditMessageText();
-        message.setChatId(chatId);
-        message.setMessageId(messageId);
-        message.setText(previousMessage);
+        if (previousState != null) {
+            EditMessageText message = new EditMessageText();
+            message.setChatId(chatId.toString());
+            message.setMessageId(messageId);
+            message.setText(previousState.getText());
+            message.setReplyMarkup(previousState.getReplyMarkup());
+
+            try {
+                execute(message);
+            } catch (TelegramApiException e) {
+                log.error("Ошибка при возврате к предыдущему состоянию: {}", e.getMessage());
+            }
+        }
     }
 
+
     private void backToProductsCatalogue(Long chatId, Integer messageId) {
+
+        // Очищаем историю при возвращении в главное меню
+        messageHistory.remove(chatId);
+
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId.toString());
         message.setMessageId(messageId);
@@ -342,6 +354,14 @@ public class BotService extends TelegramLongPollingBot {
             rowsInline.add(currentRow);
         }
 
+        // Добавляем кнопку "Назад" к клавиатуре
+        InlineKeyboardButton backButton = new InlineKeyboardButton();
+        backButton.setText("Назад");
+        backButton.setCallbackData("Назад");
+        List<InlineKeyboardButton> backRow = new ArrayList<>();
+        backRow.add(backButton);
+        rowsInline.add(backRow);
+
         // Устанавливаем клавиатуру с кнопками
         markup.setKeyboard(rowsInline);
 
@@ -357,6 +377,8 @@ public class BotService extends TelegramLongPollingBot {
         editMessageReplyMarkup.setMessageId(messageId);
         editMessageReplyMarkup.setReplyMarkup(markup);
 
+        saveMessageState(chatId, choiceText, markup);
+
         try {
             execute(editText); // Редактируем текст сообщения
             execute(editMessageReplyMarkup); // Редактируем кнопки
@@ -365,6 +387,14 @@ public class BotService extends TelegramLongPollingBot {
         }
     }
 
+    private void saveMessageState(Long chatId, String text, InlineKeyboardMarkup replyMarkup) {
+        messageHistory.putIfAbsent(chatId, new LinkedList<>());
+        Deque<MessageState> history = messageHistory.get(chatId);
+
+        if (history != null) {
+            history.addLast(new MessageState(text, replyMarkup));
+        }
+    }
 
     private Optional<? extends PricedItem> findItemByName(String callbackData) {
         List<Function<String, Optional<? extends PricedItem>>> repositoryFinders = List.of(
