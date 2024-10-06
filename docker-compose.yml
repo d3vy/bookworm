@@ -1,38 +1,37 @@
 services:
-  postgres:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/bookworm_telegram_bot_database
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: glhf5561783742
+    networks:
+      - bookworm-bot-network
+  db:
     image: postgres:latest
-    container_name: postgres
+    restart: always
     environment:
       POSTGRES_DB: bookworm_telegram_bot_database
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: glhf5561783742
+    volumes:
+      - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     networks:
-      - app-network
-
-  telegram-bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: telegram-bot
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bookworm_telegram_bot_database
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: glhf5561783742
-      TELEGRAM_BOT_TOKEN: 7768787297:AAFk5RXeryDQzOohK1wxNMHieOBXrsIZmj0
-    depends_on:
-      - postgres
-    networks:
-      - app-network
-
+      - bookworm-bot-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 networks:
-  app-network:
+  bookworm-bot-network:
     driver: bridge
-
 volumes:
-  postgres_data:
+  db-data:
