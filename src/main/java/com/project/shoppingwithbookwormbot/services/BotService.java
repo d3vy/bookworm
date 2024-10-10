@@ -324,7 +324,7 @@ public class BotService extends TelegramLongPollingBot {
         // Обработка найденного элемента
         itemInfo.ifPresentOrElse(
                 item -> {
-                    message.setText("Цена на товар \"%s\": %d\n\n".formatted(item.getName(), item.getPrice()) +
+                    message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                             "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                             "За каждого приведенного друга даем 10% от суммы его покупки!");
 
