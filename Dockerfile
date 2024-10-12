@@ -1,3 +1,13 @@
+# Этап сборки
+FROM maven:3.8.6-openjdk-21 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src/ /app/src
+RUN mvn clean package -DskipTests
+
+
+# Этап выполнения
 # Используем официальный образ OpenJDK как базовый
 FROM openjdk:21-jdk
 
