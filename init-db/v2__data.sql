@@ -22,8 +22,8 @@ INSERT INTO documents (document_name, document_price) VALUES ('Номерные 
 INSERT INTO documents (document_name, document_price) VALUES ('Подбор двойника', 15000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Военный билет', 160000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Паспорт', 150000) ON CONFLICT DO NOTHING;
-INSERT INTO documents (document_name, document_price) VALUES ('Аттестат(не официально)', 50000) ON CONFLICT DO NOTHING;
-INSERT INTO documents (document_name, document_price) VALUES ('Дипломы(не официально)', 50000) ON CONFLICT DO NOTHING;
+INSERT INTO documents (document_name, document_price) VALUES ('Аттестат(не оф)', 50000) ON CONFLICT DO NOTHING;
+INSERT INTO documents (document_name, document_price) VALUES ('Диплом(не оф)', 50000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Временное гражданство', 25000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('СНИЛС', 8000) ON CONFLICT DO NOTHING;
 

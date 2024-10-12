@@ -221,13 +221,14 @@ public class BotService extends TelegramLongPollingBot {
                 // Для упрощения возвращаемся к предыдущему каталогу
                 if (stack.size() >= 2) { // Проверяем, есть ли ещё одно предыдущее состояние
                     stack.pop(); // Удаляем ITEM_DETAILS
-                    MenuState catalogState = stack.peek();
+                    MenuState catalogueState = stack.peek();
+                    assert catalogueState != null;
                     showCatalogue(
                             chatId, messageId,
-                            getRepositoryForState(catalogState),
-                            getNameExtractorForState(catalogState),
-                            getChoiceTextForState(catalogState),
-                            catalogState, false
+                            getRepositoryForState(catalogueState),
+                            getNameExtractorForState(catalogueState),
+                            getChoiceTextForState(catalogueState),
+                            catalogueState, false
                     );
                 } else {
                     backToProductsCatalogue(chatId, messageId);
@@ -329,14 +330,17 @@ public class BotService extends TelegramLongPollingBot {
                             message.setText("Цена обсуждается в личных сообщениях.\n" +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
+                            break;
                         case 50000:
                             message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Договориться о приобретении в том числе официального документа: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
+                            break;
                         default:
                             message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
+                            break;
                     }
 
                     // Создание инлайн-клавиатуры с кнопками
