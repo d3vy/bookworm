@@ -1,19 +1,19 @@
-package com.telegrambot.forfedos.models;
+package com.project.shoppingwithbookwormbot.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Data
-@Table(name = "financial_services")
-public class FinancialService implements PricedItem {
+@Table(name = "other_services")
+public class OtherService implements PricedItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "financial_name")
+    @Column(name = "other_name")
     private String name;
 
-    @Column(name = "financial_price")
+    @Column(name = "other_price")
     private Integer price;
 }

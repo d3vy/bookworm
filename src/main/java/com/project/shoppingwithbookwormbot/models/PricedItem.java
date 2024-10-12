@@ -1,4 +1,4 @@
-package com.telegrambot.forfedos.models;
+package com.project.shoppingwithbookwormbot.models;
 
 public interface PricedItem {
     String getName();

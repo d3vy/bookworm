@@ -1,4 +1,4 @@
-package com.telegrambot.forfedos.models;
+package com.project.shoppingwithbookwormbot.models;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,15 +15,15 @@ public class Customer {
     @Column(name = "chat_id")
     private Long chatId;
 
-    @Column(name = "name")
-    private String name;
+    @Column(name = "username")
+    private String username;
 
     //Переопределение метода toString().
     @Override
     public String toString() {
         return "User{" +
                 "chatId=" + chatId +
-                ", name='" + name + '\'' +
+                ", name='" + username + '\'' +
                 '}';
     }
 }

@@ -1,4 +1,4 @@
-package com.telegrambot.forfedos.models;
+package com.project.shoppingwithbookwormbot.models;
 
 import jakarta.persistence.*;
 import lombok.Data;

@@ -10,12 +10,8 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
 server:
-  port: 8081
+  port: 8080
 bot:
   name: bookworm_telegram_bot_database
   token: 7768787297:AAFk5RXeryDQzOohK1wxNMHieOBXrsIZmj0
@@ -24,9 +20,3 @@ bot:
   owner3-id: 1332637764
 catalogue:
   count-of-categories: 6
-  count-of-documents: 12
-  count-of-financial-services: 2
-  count-of-bank-services: 1
-  count-of-digital-services: 2
-  count-of-other-services: 5
-  count-of-sales: 1

@@ -1,4 +1,4 @@
-package com.telegrambot.forfedos.config;
+package com.project.shoppingwithbookwormbot.config;
 
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;

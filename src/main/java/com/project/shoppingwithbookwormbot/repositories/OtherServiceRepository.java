@@ -1,7 +1,6 @@
-package com.telegrambot.forfedos.repositories;
+package com.project.shoppingwithbookwormbot.repositories;
 
-import com.telegrambot.forfedos.models.Document;
-import com.telegrambot.forfedos.models.OtherService;
+import com.project.shoppingwithbookwormbot.models.OtherService;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

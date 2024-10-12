@@ -1,4 +1,4 @@
-package com.telegrambot.forfedos;
+package com.project.shoppingwithbookwormbot;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
