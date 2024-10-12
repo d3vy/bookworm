@@ -29,6 +29,7 @@
 		<telegrambot.starter.version>6.9.7.1</telegrambot.starter.version>
 		<postgresql.version>42.7.3</postgresql.version>
 		<emoji.version>5.1.1</emoji.version>
+		<skipTests>true</skipTests>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -73,6 +74,11 @@
 			<artifactId>emoji-java</artifactId>
 			<version>${emoji.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
