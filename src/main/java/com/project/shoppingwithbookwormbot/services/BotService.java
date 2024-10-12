@@ -324,9 +324,19 @@ public class BotService extends TelegramLongPollingBot {
         // Обработка найденного элемента
         itemInfo.ifPresentOrElse(
                 item -> {
-                    message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
-                            "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
-                            "За каждого приведенного друга даем 10% от суммы его покупки!");
+                    if (item.getPrice() == 0) {
+                        message.setText("Цена обсуждается в личных сообщениях.\n" +
+                                "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
+                                "За каждого приведенного друга даем 10% от суммы его покупки!");
+                    } else if (item.getPrice() == 50000) {
+                        message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                                "Договориться о приобретении в том числе официального документа: %s\n\n".formatted("@zmcbqpryf") +
+                                "За каждого приведенного друга даем 10% от суммы его покупки!");
+                    } else {
+                        message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                                "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
+                                "За каждого приведенного друга даем 10% от суммы его покупки!");
+                    }
 
                     // Создание инлайн-клавиатуры с кнопками
                     InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
