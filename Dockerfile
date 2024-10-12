@@ -15,7 +15,7 @@ FROM openjdk:21-jdk
 WORKDIR /app
 
 # Копируем файл jar вашего приложения в контейнер
-COPY target/Bot-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/Bot-0.0.1-SNAPSHOT.jar app.jar
 
 # Указываем порт, который будет использоваться приложением
 EXPOSE 8080
