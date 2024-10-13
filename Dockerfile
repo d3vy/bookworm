@@ -3,7 +3,6 @@ FROM maven:3.9.4-amazoncorretto-21 AS builder
 
 # Копируем pom.xml и загружаем зависимости
 COPY pom.xml .
-RUN mvn dependency:go-offline -T 1C
 
 # Копируем исходный код
 COPY src ./src
