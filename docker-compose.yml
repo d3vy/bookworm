@@ -3,6 +3,8 @@ services:
     build: .
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/bookworm_telegram_bot_database
       SPRING_DATASOURCE_USERNAME: postgres
@@ -19,6 +21,8 @@ services:
   db:
     image: postgres:latest
     restart: always
+    env_file:
+      - .env
     environment:
       POSTGRES_DB: bookworm_telegram_bot_database
       POSTGRES_USER: postgres

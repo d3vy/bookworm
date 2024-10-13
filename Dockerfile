@@ -6,6 +6,7 @@ COPY pom.xml .
 
 # Копируем исходный код
 COPY src ./src
+RUN mvn dependency:go-offline
 
 # Сборка приложения
 RUN mvn clean package -DskipTests
