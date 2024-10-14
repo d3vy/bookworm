@@ -349,7 +349,7 @@ public class BotService extends TelegramLongPollingBot {
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
-                        case 1550000:
+                        case 155000:
                             message.setText("Цена на товар от \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Цена неоригинальных прав: 60000 рублей\n" +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
