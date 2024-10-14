@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: ShoppingWithBookwormBot
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bookworm_telegram_bot_database
+    username: postgres
+    password: glhf5561783742
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+server:
+  port: 8080
+bot:
+  name: bookworm_telegram_bot_database
+  token: 7768787297:AAFk5RXeryDQzOohK1wxNMHieOBXrsIZmj0
+  owner-id: 904663774
+  owner2-id: 1239163058
+  owner3-id: 1332637764
+catalogue:
+  count-of-categories: 6

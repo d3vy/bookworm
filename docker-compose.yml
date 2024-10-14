@@ -1,0 +1,41 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/bookworm_telegram_bot_database
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD} # Используйте переменную из .env файла
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+    networks:
+      - bookworm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"] # Проверьте, что у вас включен actuator
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:latest
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: bookworm_telegram_bot_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # Используйте переменную из .env файла
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - bookworm-network
+
+networks:
+  bookworm-network:
+    driver: bridge
+
+volumes:
+  db-data:
