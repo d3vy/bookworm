@@ -21,8 +21,8 @@ INSERT INTO documents (document_name, document_price) VALUES ('ПСМ', 25000) O
 INSERT INTO documents (document_name, document_price) VALUES ('Номерные знаки', 5000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Подбор двойника', 12000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Подбор донора', 15000) ON CONFLICT DO NOTHING;
-INSERT INTO documents (document_name, document_price) VALUES ('Права(на авто)', 160000) ON CONFLICT DO NOTHING;
-INSERT INTO documents (document_name, document_price) VALUES ('Предписание на авто', 110000) ON CONFLICT DO NOTHING;
+INSERT INTO documents (document_name, document_price) VALUES ('Права на авто(оф)', 155000) ON CONFLICT DO NOTHING;
+INSERT INTO documents (document_name, document_price) VALUES ('Предписание на авто', 95000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('ГИМС', 14000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Диплом(не оф)', 120000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Аттестат(не оф)', 100000) ON CONFLICT DO NOTHING;
