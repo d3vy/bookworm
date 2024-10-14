@@ -332,31 +332,31 @@ public class BotService extends TelegramLongPollingBot {
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
                         case 100000:
-                            message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                            message.setText("Цена на товар \"%s\":\n%d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Цена оригинального аттестата: 200000 рублей\n" +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
                         case 120000:
-                            message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                            message.setText("Цена на товар \"%s\":\n%d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Цена оригинального диплома от 1.000.000 рублей\n" +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                         case 150000:
-                            message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                            message.setText("Цена на товар \"%s\":\n%d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Цена нового паспорта: 160000 рублей\n" +
                                     "Цена Китайского паспорта: 140000 рублей\n" +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
                         case 155000:
-                            message.setText("Цена на товар \"%s\": от %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                            message.setText("Цена на товар \"%s\":\nот %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Цена неоригинальных прав: 60000 рублей\n" +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
                         default:
-                            message.setText("Цена на товар \"%s\": %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                            message.setText("Цена на товар \"%s\":\n%d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
