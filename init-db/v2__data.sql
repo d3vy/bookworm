@@ -29,7 +29,7 @@ INSERT INTO documents (document_name, document_price) VALUES ('Аттестат(
 INSERT INTO documents (document_name, document_price) VALUES ('Паспорт(старый)', 150000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('СНИЛС', 10000) ON CONFLICT DO NOTHING;
 INSERT INTO other_services (other_name, other_price) VALUES ('Мед. справки', 13000) ON CONFLICT DO NOTHING;
-INSERT INTO documents (document_name, document_price) VALUES ('Прописка', 25000) ON CONFLICT DO NOTHING;
+INSERT INTO documents (document_name, document_price) VALUES ('Прописка', 35000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Военный билет', 200000) ON CONFLICT DO NOTHING;
 
 -- Вставка финансовых услуг

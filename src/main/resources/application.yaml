@@ -13,7 +13,7 @@ spring:
 server:
   port: 8080
 bot:
-  name: bookworm_telegram_bot_database
+  name: shopping_with_bookworm_bot
   token: 7768787297:AAFk5RXeryDQzOohK1wxNMHieOBXrsIZmj0
   owner-id: 904663774
   owner2-id: 1239163058
