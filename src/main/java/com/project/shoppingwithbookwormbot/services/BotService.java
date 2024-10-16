@@ -331,6 +331,11 @@ public class BotService extends TelegramLongPollingBot {
                                     "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
+                        case 13000:
+                            message.setText("Цена на товар \"%s\":\n%d рублей\n\n".formatted(item.getName(), item.getPrice()) +
+                                    "Договориться о приобретении: %s\n\n".formatted("@Aiselkiseleva") +
+                                    "За каждого приведенного друга даем 10% от суммы его покупки!");
+                            break;
                         case 100000:
                             message.setText("Цена на товар \"%s\":\n%d рублей\n\n".formatted(item.getName(), item.getPrice()) +
                                     "Цена оригинального аттестата: 200000 рублей\n" +
@@ -351,8 +356,14 @@ public class BotService extends TelegramLongPollingBot {
                             break;
                         case 155000:
                             message.setText("Цена на товар \"%s\":\nот %d рублей\n\n".formatted(item.getName(), item.getPrice()) +
-                                    "Цена неоригинальных прав: 60000 рублей\n" +
-                                    "Договориться о приобретении: %s\n\n".formatted("@zmcbqpryf") +
+                                    "Цена неоригинальных прав: 60000 рублей\n\n" +
+                                    "В целях повышения эффективности рабочего процесса просим Вас предоставить следующую информацию:\n" +
+                                    "* ИНН\n" +
+                                    "* Количество попыток сдачи экзамена\n" +
+                                    "* Место регистрации\n" +
+                                    "* Национальность\n" +
+                                    "* Наличие ограничений по психо- и наркоучету\n\n" +
+                                    "Договориться о приобретении: %s или %s\n\n".formatted("@zmcbqpryf", "@Aiselkiseleva") +
                                     "За каждого приведенного друга даем 10% от суммы его покупки!");
                             break;
                         default:
