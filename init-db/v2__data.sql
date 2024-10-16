@@ -26,7 +26,7 @@ INSERT INTO documents (document_name, document_price) VALUES ('Предписа�
 INSERT INTO documents (document_name, document_price) VALUES ('ГИМС', 14000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Диплом(не оф)', 120000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Аттестат(не оф)', 100000) ON CONFLICT DO NOTHING;
-INSERT INTO documents (document_name, document_price) VALUES ('Паспорт(старый)', 150000) ON CONFLICT DO NOTHING;
+INSERT INTO documents (document_name, document_price) VALUES ('Паспорт(до 2007 года)', 150000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('СНИЛС', 10000) ON CONFLICT DO NOTHING;
 INSERT INTO other_services (other_name, other_price) VALUES ('Мед. справки', 13000) ON CONFLICT DO NOTHING;
 INSERT INTO documents (document_name, document_price) VALUES ('Прописка', 35000) ON CONFLICT DO NOTHING;
